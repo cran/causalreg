@@ -1,0 +1,11 @@
+e0f450d05c10cafadbffd953a220a4a5 *DESCRIPTION
+2d8b415779caa6d1c2ed57ba3880cec8 *NAMESPACE
+bd0090be235c39f9097662b38b7ca7cf *R/boot_pval.R
+b9127bf15137e207b25c1c9259b1aeae *R/cgam.R
+e0dda1a507d90c1b535fd98ebf9ded45 *R/cgam_all.R
+4ff5f4fc1d1ed5c12872e5bf530a02bb *R/cgam_step.R
+228a8807a752587eecd36159f65ddea7 *R/cglm.R
+87c077bf3d363e7d526e5b2b72270c35 *R/cglm_all.R
+8289b55c04caead66a5f7a5af330c561 *R/cglm_step.R
+e7d553d5c651447801763079f7ad9405 *man/cgam.Rd
+747e11287c658a9bfdb907478dbc4dfd *man/cglm.Rd
