@@ -1,4 +1,4 @@
-cgam_step<-function(formula, family, data, alpha=0.05,pval.approx=TRUE, B=100,...)
+cgam_step<-function(formula, family, data, alpha=0.05,pval=c("bootstrap","chi-square"), B=100,...)
 {
   n<-nrow(data)
   vrs<-all.vars(formula)
@@ -12,9 +12,9 @@ cgam_step<-function(formula, family, data, alpha=0.05,pval.approx=TRUE, B=100,..
   p<-length(var.names)
 
   if (vrs[2]=="."){
-    a<-glm(formula, family, data, ...)
+    a<-glm(formula, family=family, data=data, ...)
   } else {
-    a<-gam(formula, family, data, ...)
+    a<-gam(formula, family=family, data=data, ...)
   }
 
   if(names(a$coefficients)[1]=="(Intercept)"){
@@ -51,18 +51,19 @@ cgam_step<-function(formula, family, data, alpha=0.05,pval.approx=TRUE, B=100,..
     {
       fmli<-update.formula(mod.step[[j]], paste0("~. +", var.namesyes[i]))
       if (vrs[2]=="."){
-        a.gam<-glm(fmli, family, data,...)
+        a.gam<-glm(fmli, family=family, data=data,...)
         edf<-length(a.gam$coefficients)
       } else{
-        a.gam<-gam(fmli, family, data, ...)
+        a.gam<-gam(fmli, family=family, data=data, ...)
         sa.gam<-summary(a.gam)
         edf<-length(sa.gam$p.coeff)+sum(sa.gam$edf)
       }
       ps<- sum(residuals(a.gam,type="pearson")^2)
-      if (pval.approx){
+      if (pval=="chi-square"){
         pv<-2*min(pchisq(ps,n-edf),pchisq(ps,n-edf,lower.tail = FALSE))
-      } else {
-        pv<-boot_pval(fmli,family,data,B,...)
+      }
+      if (pval=="bootstrap") {
+        pv<-boot_pval(fmli,family=family,data=data,B=B,...)
       }
       pvals<-c(pvals,pv)
     }
@@ -73,18 +74,19 @@ cgam_step<-function(formula, family, data, alpha=0.05,pval.approx=TRUE, B=100,..
     mod.min<-reformulate(sort(a),response=dip.name,intercept=intercept)
 
     if (vrs[2]=="."){
-      a.gam<-glm(mod.min, family, data, ...)
+      a.gam<-glm(mod.min, family=family, data=data, ...)
       edf<-length(a.gam$coefficients)
     } else{
-      a.gam<-gam(mod.min, family, data, ...)
+      a.gam<-gam(mod.min, family=family, data=data, ...)
       sa.gam<-summary(a.gam)
       edf<-length(sa.gam$p.coeff)+sum(sa.gam$edf)
     }
     ps<- sum(residuals(a.gam,type="pearson")^2)
-    if (pval.approx){
+    if (pval=="chi-square"){
       pv.min<-2*min(pchisq(ps,n-edf),pchisq(ps,n-edf,lower.tail = FALSE))
-    } else {
-      pv.min<-boot_pval(fmli,family,data,B,...)
+    }
+    if (pval == "bootstrap") {
+      pv.min<-boot_pval(fmli,family=family,data=data,B=B,...)
     }
 
 
@@ -100,9 +102,9 @@ cgam_step<-function(formula, family, data, alpha=0.05,pval.approx=TRUE, B=100,..
   }
   model.current<-mod.step[[length(mod.step)]]
   if (vrs[2]=="."){
-    current.gam<-glm(model.current, family, data, ...)
+    current.gam<-glm(model.current, family=family, data=data, ...)
   } else{
-    current.gam<-gam(model.current, family, data, ...)
+    current.gam<-gam(model.current, family=family, data=data, ...)
   }
   bic.current<-BIC(current.gam)
   j<-j-1
@@ -150,9 +152,78 @@ cgam_step<-function(formula, family, data, alpha=0.05,pval.approx=TRUE, B=100,..
       improve<-FALSE
   }
 
-  for(j in 1:length(mod.step))
-    mod.step[[j]]<-format(as.formula(deparse(mod.step[[j]]),env=NULL))
-
   mod.opt<-mod.step[[length(mod.step)]]
-  return(list(models=mod.step, model.opt=mod.opt))
+
+  var.cat<-colnames(data)[sapply(data, function(x) !is.numeric(x))]
+  var.bin<-colnames(data)[sapply(data, function(x) length(unique(na.omit(x))) == 2)]
+  var.cat<-union(var.cat,var.bin)
+  if(mod.opt!="no potential causal model found")
+  {
+    var.mod<-attr(terms.formula(as.formula(mod.opt),data=data),"term.labels")
+    var.noncat <- setdiff(var.mod, var.cat)
+  }
+  else{
+    var.noncat<-var.mod<-var.cat
+  }
+
+  if (family == "binomial" & length(var.noncat) < length(var.mod))
+  {
+    mod.test <- reformulate(var.noncat, response = all.vars(formula(mod.opt))[1])
+    fmli<-update.formula(as.formula(mod.opt),mod.test)
+    if (vrs[2]=="."){
+      a.gam<-glm(fmli, family=family, data=data,...)
+      edf<-length(a.gam$coefficients)
+    } else{
+      a.gam<-gam(fmli, family=family, data=data, ...)
+      sa.gam<-summary(a.gam)
+      edf<-length(sa.gam$p.coeff)+sum(sa.gam$edf)
+    }
+    ps<-sum(residuals(a.gam,type="pearson")^2)
+    if (pval == "chi-square"){
+      pv<-2*min(pchisq(ps,n-edf),pchisq(ps,n-edf,lower.tail = FALSE))
+    }
+    if (pval == "bootstrap") {
+      pv<-boot_pval(fmli,family=family, data=data, B=B,...)
+    }
+    if(pv>alpha)
+    {
+      mod.opt<-fmli
+    }
+    else
+    {
+      varc<-var.cat[var.cat %in% var.mod]
+      for(i in 1:length(varc))
+      {
+        fmli<-update.formula(mod.opt, paste0("~. -", varc[i]))
+        if (vrs[2]=="."){
+          a.gam<-glm(fmli, family=family, data=data,...)
+          edf<-length(a.gam$coefficients)
+        } else{
+          a.gam<-gam(fmli, family=family, data=data, ...)
+          sa.gam<-summary(a.gam)
+          edf<-length(sa.gam$p.coeff)+sum(sa.gam$edf)
+        }
+        ps<-sum(residuals(a.gam,type="pearson")^2)
+        if (pval == "chi-square"){
+          pv<-2*min(pchisq(ps,n-edf),pchisq(ps,n-edf,lower.tail = FALSE))
+        }
+        if (pval == "bootstrap") {
+          pv<-boot_pval(fmli,family=family, data=data, B=B,...)
+        }
+        if(pv>alpha)
+        {
+          mod.opt<-fmli
+        }
+      }
+    }
+    if(mod.opt!=mod.step[[length(mod.step)]])
+    {
+      mod.step[[length(mod.step)+1]]<-mod.opt
+    }
+  }
+
+  for(j in 1:length(mod.step))
+    mod.step[[j]]<-deparse1(mod.step[[j]])
+
+  return(list(models=mod.step, model.opt=mod.step[[length(mod.step)]]))
 }

@@ -1,6 +1,6 @@
 Package: causalreg
 Title: Causal Generalized Linear Models
-Version: 0.1.0
+Version: 0.1.1
 Authors@R: c(person(given = "Veronica",
                         family = "Vinciotti",
                         role = c("aut", "cre"),
@@ -12,12 +12,12 @@ Authors@R: c(person(given = "Veronica",
 Description: An implementation of methods for causal discovery in a structural causal model where the conditional distribution of the target node is described by a generalized linear model conditional on its causal parents. 
 License: GPL-3
 Encoding: UTF-8
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.3
 Imports: mgcv
 NeedsCompilation: no
-Packaged: 2025-03-10 16:46:51 UTC; v_vin
+Packaged: 2026-02-27 17:01:31 UTC; v_vin
 Author: Veronica Vinciotti [aut, cre],
   Ernst C. Wit [aut]
 Maintainer: Veronica Vinciotti <veronica.vinciotti@unitn.it>
 Repository: CRAN
-Date/Publication: 2025-03-12 17:30:20 UTC
+Date/Publication: 2026-02-27 17:22:09 UTC

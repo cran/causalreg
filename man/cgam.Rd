@@ -9,9 +9,8 @@ cgam(
   family,
   data,
   alpha = 0.05,
-  pval.approx = FALSE,
+  pval = c("bootstrap", "chi-squared"),
   B = 100,
-  seed = 1,
   search = c("all", "stepwise"),
   ...
 )
@@ -25,11 +24,9 @@ cgam(
 
 \item{alpha}{Significance level for statistical test.}
 
-\item{pval.approx}{If TRUE, chi-squared approximated p-values are calculated. Default is FALSE, in which case p-values are calculated via bootstrap.}
+\item{pval}{If pval="bootstrap", a bootstrap test is conducted to test whether Pearson risk is 1. When family="poisson" a chi-squared approximate test can be conducted by setting pval="chi-square".}
 
-\item{B}{Number of bootstrap sample when pval.approx=FALSE.}
-
-\item{seed}{Seed for generating bootstrap samples.}
+\item{B}{Number of bootstrap samples when pval="bootstrap". Default is 100.}
 
 \item{search}{If search="stepwise", a greedy forward stepwise search is conducted. Default is search="all", in which case all possible submodels are considered.}
 
@@ -49,10 +46,10 @@ set.seed(123)
 X1<-rnorm(n,0,1)
 Y<-rpois(n,exp(sin(X1)))
 X2<-log(Y+1)+rnorm(n,0,0.5)
-data<-data.frame(cbind(X1, X2, Y))
-cm_all<-cgam(Y ~ s(X1)+s(X2),"poisson",data,pval.approx=TRUE,search="all")
+data<-data.frame(X1, X2, Y)
+cm_all<-cgam(Y ~ s(X1)+s(X2),"poisson",data,pval="chi-square",search="all")
 cm_all$model.opt
-cm_step<-cgam(Y ~ s(X1)+s(X2),"poisson",data,pval.approx=TRUE,search="stepwise")
+cm_step<-cgam(Y ~ s(X1)+s(X2),"poisson",data,pval="chi-square",search="stepwise")
 cm_step$model.opt
 \donttest{
 #bigger simulation with 7 covariates
@@ -68,11 +65,11 @@ X5<-Z+rnorm(n=n,sd=sqrt(0.04))
 X6<-Z+rnorm(n=n,sd=sqrt(0.04))
 X7<-X6+rnorm(n=n,sd=sqrt(0.04))
 Y<-qpois(pnorm(Z, mean = m, sd = sqrt(0.04)), lambda=exp(m))
-dat<-data.frame(cbind(X1, X2, X3, X4, X5, X6, X7,Y))
+dat<-data.frame(X1, X2, X3, X4, X5, X6, X7,Y)
 fml<- Y~s(X1)+s(X2)+s(X3)+s(X4)+s(X5)+s(X6)+s(X7)
-mod.all <-cgam(fml,"poisson",dat,pval.approx=TRUE,search="all")
+mod.all <-cgam(fml,"poisson",dat,pval="chi-square",search="all")
 mod.all$model.opt
-mod.step <-cgam(fml,"poisson",dat,pval.approx=TRUE,search="stepwise")
+mod.step <-cgam(fml,"poisson",dat,pval="chi-square",search="stepwise")
 mod.step$model.opt
 ####################################
 #causal logistic gam################
@@ -82,10 +79,12 @@ X1<-rnorm(n,0,1)
 Y<-rbinom(n,1,exp(X1)/(1+exp(X1)))
 flip<-rbinom(n,1,0.1)
 X2<-(1-flip)*Y+rnorm(n,0,0.3)
-data<-data.frame(cbind(X1, X2, Y))
-cm_all<-cgam(Y ~ s(X1)+s(X2),"binomial",data,pval.approx=FALSE,search="all")
+data<-data.frame(X1, X2, Y)
+set.seed(1)
+cm_all<-cgam(Y ~ s(X1)+s(X2),"binomial",data,pval="bootstrap",search="all")
 cm_all$model.opt
-cm_step<-cgam(Y ~ s(X1)+s(X2),"binomial",data,pval.approx=FALSE,search="stepwise")
+set.seed(1)
+cm_step<-cgam(Y ~ s(X1)+s(X2),"binomial",data,pval="bootstrap",search="stepwise")
 cm_step$model.opt
 }
 }

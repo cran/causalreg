@@ -6,13 +6,12 @@
 #' @param family A distributional family object. Currently supported options are: binomial and poisson.
 #' @param data A data frame containing the variables in the model.
 #' @param alpha Significance level for statistical test
-#' @param pval.approx If TRUE, chi-squared approximated p-values are calculated. Default is FALSE, in which case p-values are calculated via bootstrap.
-#' @param B Number of bootstrap sample when pval.approx=FALSE.
-#' @param seed Seed for generating bootstrap samples.
+#' @param pval If pval="bootstrap", a bootstrap test is conducted to test whether Pearson risk is 1. When family="poisson" a chi-squared approximate test can be conducted by setting pval="chi-square".
+#' @param B Number of bootstrap samples when pval="bootstrap". Default is 100.
 #' @param search If search="stepwise", a greedy forward stepwise search is conducted. Default is search="all", in which case all possible submodels are considered.
 #' @param ... Further arguments to be passed to the glm function.
 #' @return A glm object of the selected causal submodel.
-#' @importFrom stats BIC as.formula coef glm pchisq reformulate residuals terms.formula update.formula
+#' @importFrom stats BIC as.formula coef glm pchisq reformulate residuals terms.formula update.formula na.omit
 #' @importFrom utils combn
 #' @examples
 #' ###################################
@@ -22,10 +21,10 @@
 #' X1<-rnorm(n,0,1)
 #' Y<-rpois(n,exp(X1))
 #' X2<-log(Y+1)+rnorm(n,0,0.3)
-#' data<-data.frame(cbind(X1, X2, Y))
-#' cm_all<-cglm(Y ~ X1+X2,"poisson",data,pval.approx=TRUE,search="all")
+#' data<-data.frame(X1, X2, Y)
+#' cm_all<-cglm(Y ~ X1+X2,"poisson",data,pval="chi-square",search="all")
 #' cm_all$model.opt
-#' cm_step<-cglm(Y ~ X1+X2,"poisson",data,pval.approx=TRUE,search="stepwise")
+#' cm_step<-cglm(Y ~ X1+X2,"poisson",data,pval="chi-square",search="stepwise")
 #' cm_step$model.opt
 #' \donttest{
 #' ##########################
@@ -36,10 +35,12 @@
 #' Y<-rbinom(n,1,exp(X1)/(1+exp(X1)))
 #' flip<-rbinom(n,1,0.1)
 #' X2<-(1-flip)*Y+rnorm(n,0,0.3)
-#' data<-data.frame(cbind(X1, X2, Y))
-#' cm_all<-cglm(Y ~ X1+X2,"binomial",data,pval.approx=FALSE,search="all")
+#' data<-data.frame(X1, X2, Y)
+#' set.seed(1)
+#' cm_all<-cglm(Y ~ X1+X2,"binomial",data,pval="bootstrap",search="all")
 #' cm_all$model.opt
-#' cm_step<-cglm(Y ~ X1+X2,"binomial",data,pval.approx=FALSE,search="stepwise")
+#' set.seed(1)
+#' cm_step<-cglm(Y ~ X1+X2,"binomial",data,pval="bootstrap",search="stepwise")
 #' cm_step$model.opt
 #' #bigger simulation with 5 covariates
 #' set.seed(12)
@@ -51,24 +52,24 @@
 #' Y<-rbinom(n,1,exp(.8*X2-.9*X3)/(1+exp(.8*X2-.9*X3)))
 #' flip<-rbinom(n,1,0.1)
 #' X5<-(1-flip)*Y+flip*(1-Y)+rnorm(n,0,.3)
-#' dat<-data.frame(cbind(X1, X2, X3, X4, X5,Y))
-#' mod.all <-cglm(Y~X1+X2+X3+X4+X5,"binomial",dat,pval.approx=FALSE,search="all")
+#' dat<-data.frame(X1, X2, X3, X4, X5,Y)
+#' set.seed(1)
+#' mod.all <-cglm(Y~X1+X2+X3+X4+X5,"binomial",dat,pval="bootstrap",search="all")
 #' mod.all$model.opt
-#' mod.step <-cglm(Y~X1+X2+X3+X4+X5,"binomial",dat,pval.approx=FALSE,search="stepwise")
+#' set.seed(1)
+#' mod.step <-cglm(Y~X1+X2+X3+X4+X5,"binomial",dat,pval="bootstrap",search="stepwise")
 #' mod.step$model.opt
 #' }
 #' @export
-cglm<-function(formula, family, data, alpha=0.05,pval.approx=FALSE,B=100,seed=1,search=c("all","stepwise"),...)
+cglm<-function(formula, family, data, alpha=0.05,pval=c("bootstrap","chi-square"),B=100,search=c("all","stepwise"),...)
 {
-  set.seed(seed)
-
   if(search[1]=="all")
   {
-    res<-cglm_all(formula, family, data, alpha,pval.approx,B,...)
+    res<-cglm_all(formula, family=family, data=data, alpha=alpha, pval=pval, B=B,...)
   }
   else
   {
-    res<-cglm_step(formula, family, data, alpha,pval.approx,B,...)
+    res<-cglm_step(formula, family=family, data=data, alpha=alpha, pval=pval, B=B,...)
   }
   return(res)
 }
