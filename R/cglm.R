@@ -6,11 +6,14 @@
 #' @param family A distributional family object. Currently supported options are: binomial and poisson.
 #' @param data A data frame containing the variables in the model.
 #' @param alpha Significance level for statistical test
-#' @param pval If pval="bootstrap", a bootstrap test is conducted to test whether Pearson risk is 1. When family="poisson" a chi-squared approximate test can be conducted by setting pval="chi-square".
+#' @param pval If pval="bootstrap", a bootstrap test is conducted to test whether Pearson risk is 1. When family="poisson" a chi-squared test can be conducted by setting pval="chi-square".
 #' @param B Number of bootstrap samples when pval="bootstrap". Default is 100.
 #' @param search If search="stepwise", a greedy forward stepwise search is conducted. Default is search="all", in which case all possible submodels are considered.
 #' @param ... Further arguments to be passed to the glm function.
 #' @return A glm object of the selected causal submodel.
+#' @references
+#' Polinelli, A., V. Vinciotti and E.C. Wit. (2026). "Causal generalized linear models via Pearson risk invariance" *Journal of Causal
+#' Inference*.
 #' @importFrom stats BIC as.formula coef glm pchisq reformulate residuals terms.formula update.formula na.omit
 #' @importFrom utils combn
 #' @examples

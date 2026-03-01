@@ -1,6 +1,6 @@
 Package: causalreg
 Title: Causal Generalized Linear Models
-Version: 0.1.1
+Version: 0.1.2
 Authors@R: c(person(given = "Veronica",
                         family = "Vinciotti",
                         role = c("aut", "cre"),
@@ -15,9 +15,9 @@ Encoding: UTF-8
 RoxygenNote: 7.3.3
 Imports: mgcv
 NeedsCompilation: no
-Packaged: 2026-02-27 17:01:31 UTC; v_vin
+Packaged: 2026-02-28 16:43:43 UTC; v_vin
 Author: Veronica Vinciotti [aut, cre],
   Ernst C. Wit [aut]
 Maintainer: Veronica Vinciotti <veronica.vinciotti@unitn.it>
 Repository: CRAN
-Date/Publication: 2026-02-27 17:22:09 UTC
+Date/Publication: 2026-03-01 22:50:06 UTC

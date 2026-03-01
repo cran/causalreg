@@ -24,7 +24,7 @@ cgam(
 
 \item{alpha}{Significance level for statistical test.}
 
-\item{pval}{If pval="bootstrap", a bootstrap test is conducted to test whether Pearson risk is 1. When family="poisson" a chi-squared approximate test can be conducted by setting pval="chi-square".}
+\item{pval}{If pval="bootstrap", a bootstrap test is conducted to test whether Pearson risk is 1. When family="poisson" a chi-squared test can be conducted by setting pval="chi-square".}
 
 \item{B}{Number of bootstrap samples when pval="bootstrap". Default is 100.}
 
@@ -87,4 +87,8 @@ set.seed(1)
 cm_step<-cgam(Y ~ s(X1)+s(X2),"binomial",data,pval="bootstrap",search="stepwise")
 cm_step$model.opt
 }
+}
+\references{
+Polinelli, A., V. Vinciotti and E.C. Wit. (2026). "Causal generalized linear models via Pearson risk invariance" \emph{Journal of Causal
+Inference}.
 }
