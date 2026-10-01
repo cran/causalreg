@@ -3,20 +3,29 @@
 #' This function does a search for a causal submodel within the generalized additive model provided.
 #'
 #' @param formula A formula object.
-#' @param family A distributional family object. Currently supported options are: binomial and poisson.
+#' @param family The response family as a character string, \code{"poisson"} or \code{"binomial"}. A family object such as \code{poisson()} is not accepted.
 #' @param data A data frame containing the variables in the model.
 #' @param alpha Significance level for statistical test.
 #' @param pval If pval="bootstrap", a bootstrap test is conducted to test whether Pearson risk is 1. When family="poisson" a chi-squared test can be conducted by setting pval="chi-square".
 #' @param B Number of bootstrap samples when pval="bootstrap". Default is 100.
-#' @param search If search="stepwise", a greedy forward stepwise search is conducted. Default is search="all", in which case all possible submodels are considered.
+#' @param search \code{"all"} (the default) fits every non-empty submodel of the candidate terms; \code{"stepwise"} runs a stepwise search in the direction set by \code{direction}.
+#' @param ncores Number of cores for parallel computation. Default is 1 (sequential). When ncores > 1, model evaluations are distributed across cores using forking (\code{parallel::mclapply}) on Unix/macOS and a PSOCK cluster (\code{parallel::parLapply}) on Windows, so parallelization is available on all platforms. The backend can be overridden with \code{options(causalreg.parallel = )} ("auto", "fork", "psock", or "sequential").
+#' @param fast_gam Logical; only relevant when pval="bootstrap". If TRUE, the smoothing parameters selected on the original data (once per candidate model) are held fixed across that model's bootstrap resamples, so each resample fit skips mgcv's REML/GCV smoothing-parameter selection. This typically gives a 3-4x speedup (composable with ncores) and the same model selection, but it is an approximation: individual bootstrap p-values can differ from the fully re-selected version, more so at small B. Default is TRUE; set fast_gam=FALSE to re-select the smoothing parameters on every resample (the exact bootstrap used in earlier versions, slower). Has no effect on cglm or on the chi-square test.
 #' @param ... Further arguments to be passed to the gam function.
-#' @return A gam object of the selected causal submodel.
+#' @return A list containing the selected causal submodel and search diagnostics.
 #' @references
-#' Polinelli, A., V. Vinciotti and E.C. Wit. (2026). "Causal generalized linear models via Pearson risk invariance" *Journal of Causal
-#' Inference*.
+#' Polinelli, A., V. Vinciotti and E.C. Wit. (2026). "Causal generalized linear models via Pearson risk invariance." Journal of Causal Inference, 14(1), 20240043. \doi{10.1515/jci-2024-0043}
 #' @importFrom stats BIC as.formula coef glm pchisq reformulate residuals terms.formula update.formula na.omit
 #' @importFrom utils combn
 #' @importFrom mgcv gam
+#' @param direction Direction of the stepwise search, `"forward"` (default) or
+#'   `"backward"`. Ignored when `search = "all"`. Forward starts from the intercept
+#'   model and adds the variable giving the largest p-value; backward starts from the
+#'   full model and removes the variable whose removal gives the largest p-value,
+#'   stopping once the model is no longer rejected. Both then prune by BIC. For a
+#'   binomial response whose candidate set contains a categorical variable, the
+#'   backward search is used and a message is emitted, because the Pearson risk of a
+#'   binary regression on categorical covariates alone is mathematically equal to 1.
 #' @examples
 #' ##############################
 #' #causal Poisson gam##########
@@ -67,15 +76,21 @@
 #' cm_step$model.opt
 #' }
 #' @export
-cgam<-function(formula, family, data, alpha=0.05,pval=c("bootstrap","chi-squared"),B=100,search=c("all","stepwise"),...)
-{
-  if(search[1]=="all")
-  {
-    res<-cgam_all(formula, family=family, data=data, alpha=alpha, pval=pval, B=B,...)
+cgam <- function(formula, family, data, alpha = 0.05,
+                 pval = c("bootstrap", "chi-square"), B = 100,
+                 search = c("all", "stepwise"), ncores = 1L,
+                 fast_gam = TRUE, direction = c("forward", "backward"), ...) {
+  pval <- match.arg(pval)
+  search <- match.arg(search)
+  direction <- match.arg(direction)
+
+  if (search == "all") {
+    causal_all(formula, family = family, data = data, alpha = alpha,
+               pval = pval, B = B, use_gam = TRUE, ncores = ncores,
+               fast_gam = fast_gam, ...)
+  } else {
+    causal_step(formula, family = family, data = data, alpha = alpha,
+                pval = pval, B = B, use_gam = TRUE, ncores = ncores,
+                fast_gam = fast_gam, direction = direction, ...)
   }
-  else
-  {
-    res<-cgam_step(formula, family=family, data=data, alpha=alpha, pval=pval, B=B,...)
-  }
-  return(res)
 }

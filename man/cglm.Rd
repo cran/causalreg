@@ -12,13 +12,16 @@ cglm(
   pval = c("bootstrap", "chi-square"),
   B = 100,
   search = c("all", "stepwise"),
+  ncores = 1L,
+  use_cpp = TRUE,
+  direction = c("forward", "backward"),
   ...
 )
 }
 \arguments{
 \item{formula}{A formula object.}
 
-\item{family}{A distributional family object. Currently supported options are: binomial and poisson.}
+\item{family}{The response family as a character string, \code{"poisson"} or \code{"binomial"}. A family object such as \code{poisson()} is not accepted.}
 
 \item{data}{A data frame containing the variables in the model.}
 
@@ -28,12 +31,25 @@ cglm(
 
 \item{B}{Number of bootstrap samples when pval="bootstrap". Default is 100.}
 
-\item{search}{If search="stepwise", a greedy forward stepwise search is conducted. Default is search="all", in which case all possible submodels are considered.}
+\item{search}{\code{"all"} (the default) fits every non-empty submodel of the candidate terms; \code{"stepwise"} runs a stepwise search in the direction set by \code{direction}.}
+
+\item{ncores}{Number of cores for parallel computation. Default is 1 (sequential). When ncores > 1, model evaluations are distributed across cores using forking (\code{parallel::mclapply}) on Unix/macOS and a PSOCK cluster (\code{parallel::parLapply}) on Windows, so parallelization is available on all platforms. The backend can be overridden with \code{options(causalreg.parallel = )} ("auto", "fork", "psock", or "sequential").}
+
+\item{use_cpp}{Logical; if TRUE (default), use fast C++ implementations for supported families.}
+
+\item{direction}{Direction of the stepwise search, `"forward"` (default) or
+`"backward"`. Ignored when `search = "all"`. Forward starts from the intercept
+model and adds the variable giving the largest p-value; backward starts from the
+full model and removes the variable whose removal gives the largest p-value,
+stopping once the model is no longer rejected. Both then prune by BIC. For a
+binomial response whose candidate set contains a categorical variable, the
+backward search is used and a message is emitted, because the Pearson risk of a
+binary regression on categorical covariates alone is mathematically equal to 1.}
 
 \item{...}{Further arguments to be passed to the glm function.}
 }
 \value{
-A glm object of the selected causal submodel.
+A list containing the selected causal submodel and search diagnostics.
 }
 \description{
 This function does a search for a causal submodel within the generalized linear model provided.
@@ -87,6 +103,5 @@ mod.step$model.opt
 }
 }
 \references{
-Polinelli, A., V. Vinciotti and E.C. Wit. (2026). "Causal generalized linear models via Pearson risk invariance" \emph{Journal of Causal
-Inference}.
+Polinelli, A., V. Vinciotti and E.C. Wit. (2026). "Causal generalized linear models via Pearson risk invariance." Journal of Causal Inference, 14(1), 20240043. \doi{10.1515/jci-2024-0043}
 }

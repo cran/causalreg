@@ -1,20 +1,36 @@
-boot_pval<-function(formula, family, data, B=100, ...)
-{
-  n <- nrow(data)
-  vrs<-all.vars(formula)
-  pr<-NULL
-  for(i in 1:B)
-  {
-    idx <- base::sample(x=1:n,replace=TRUE)
-    dat<-data[idx,]
-    if (vrs[2]=="."){
-      h<-glm(formula=formula, family=family, data=dat,...)
-    } else {
-      h <-gam(formula=formula, family=family, data=dat,...)
-    }
-    pr<-c(pr,sum(residuals(h,type="pearson")^2)/n)
+boot_pval <- function(formula, family, data, B = 100, use_gam = FALSE,
+                      ncores = 1L, use_cpp = TRUE, sp = NULL, ...) {
+  # Fast C++ path for GLM with supported families
+  if (use_cpp && !use_gam && family %in% c("poisson", "binomial") &&
+      length(list(...)) == 0) {
+    mf <- model.frame(formula, data)
+    X <- model.matrix(formula, mf)
+    y <- as.numeric(model.response(mf))
+    return(boot_pval_cpp(X, y, family, as.integer(B)))
   }
-  prob<-mean(1<=pr)
-  pv<-2*min(prob,1-prob)
-  return(pv)
+
+  # Original R path
+  n <- nrow(data)
+  dots <- list(...)
+
+  # When sp is supplied (GAM fast path), reuse the original-data smoothing
+  # parameters on every resample so mgcv skips the costly REML/GCV selection.
+  gam_sp <- if (use_gam && !is.null(sp)) list(sp = sp) else list()
+
+  boot_one <- function(i) {
+    idx <- sample.int(n, replace = TRUE)
+    h <- do.call(.fit_model, c(list(formula = formula, family = family,
+                                    data = data[idx, , drop = FALSE],
+                                    use_gam = use_gam), gam_sp, dots))
+    sum(residuals(h, type = "pearson")^2) / n
+  }
+
+  if (ncores > 1L) {
+    pr <- unlist(.parallel_lapply(seq_len(B), boot_one, ncores))
+  } else {
+    pr <- vapply(seq_len(B), boot_one, numeric(1))
+  }
+
+  prob <- mean(pr >= 1)
+  2 * min(prob, 1 - prob)
 }
